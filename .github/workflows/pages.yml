@@ -5,6 +5,7 @@ on:
     branches: ["main"]
     paths:
       - "index.html"
+      - "og-image.png"
       - ".github/workflows/pages.yml"
   workflow_dispatch:
 
@@ -26,10 +27,11 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-      - name: Pripremi samo igru (index.html)
+      - name: Pripremi igru i OG sliku za dijeljenje
         run: |
           mkdir -p _site
           cp index.html _site/index.html
+          if [ -f og-image.png ]; then cp og-image.png _site/og-image.png; fi
       - name: Setup Pages
         uses: actions/configure-pages@v5
       - name: Upload artifact
