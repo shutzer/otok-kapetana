@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# Pre-push hook za javni repo igre Otok Kapetana (shutzer/otok-kapetana).
+# Uključi jednom po klonu: git config core.hooksPath .githooks
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "$ROOT"
+
+# 1. Lokalni user.email mora biti postavljen (da ne procuri globalna/poslovna adresa)
+LOCAL_EMAIL="$(git config --local --get user.email || true)"
+if [[ -z "$LOCAL_EMAIL" ]]; then
+  echo "✗ Greška: lokalni 'user.email' nije postavljen!"
+  echo "  Postavi ga s: git config --local user.email \"<privatna-adresa>\""
+  exit 1
+fi
+
+# 2. Privatni dokumenti i tajne ne smiju biti praćeni u javnom repou
+for forbidden in docs CLAUDE.md AGENTS.md .env; do
+  if git ls-files --error-unmatch "$forbidden" >/dev/null 2>&1; then
+    echo "✗ Greška: '$forbidden' je praćen u javnom repou! Ukloni ga iz indeksa prije pusha."
+    exit 1
+  fi
+done
+
+# 3. Provjera dolaznih referenci (zabrana brisanja grana i non-fast-forward pusha bez OTOK_PREPRAVI=1)
+ZERO="0000000000000000000000000000000000000000"
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [[ "$local_sha" == "$ZERO" ]]; then
+    if [[ "${OTOK_PREPRAVI:-0}" != "1" ]]; then
+      echo "✗ Odbijeno brisanje grane '$remote_ref' na GitHubu (postavi OTOK_PREPRAVI=1 ako je namjerno)."
+      exit 1
+    fi
+    continue
+  fi
+
+  if [[ "$remote_sha" != "$ZERO" ]]; then
+    if ! git merge-base --is-ancestor "$remote_sha" "$local_sha" 2>/dev/null; then
+      if [[ "${OTOK_PREPRAVI:-0}" != "1" ]]; then
+        echo "✗ Odbijen non-fast-forward push na '$remote_ref' (postavi OTOK_PREPRAVI=1 ako je namjerno)."
+        exit 1
+      fi
+    fi
+    RANGE="$remote_sha..$local_sha"
+  else
+    RANGE="$local_sha"
+  fi
+
+  # Provjera da nijedan commit koji odlazi ne dira docs/, CLAUDE.md, AGENTS.md ili .env
+  if git log --name-only --pretty=format: "$RANGE" | grep -qE '^(docs/|CLAUDE\.md$|AGENTS\.md$|\.env)'; then
+    echo "✗ Greška: jedan od commita koji odlazi dira docs/, CLAUDE.md, AGENTS.md ili .env!"
+    exit 1
+  fi
+
+  # Provjera da nijedan commit nema drugu e-mail adresu autora
+  BAD_EMAIL="$(git log --pretty=format:%ae "$RANGE" | grep -v -F "$LOCAL_EMAIL" | head -n 1 || true)"
+  if [[ -n "$BAD_EMAIL" ]]; then
+    echo "✗ Greška: commit nosi adresu '$BAD_EMAIL' umjesto lokalne '$LOCAL_EMAIL'."
+    exit 1
+  fi
+done
+
+# 4. Pokreni sve jedinične testove igre
+npm test
