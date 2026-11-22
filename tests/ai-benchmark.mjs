@@ -3,11 +3,17 @@ import { loadEngine } from './load-engine.mjs';
 
 const { CONFIG, GameRules, AI } = loadEngine();
 
-const GAMES_PER_PAIR = 200; // 3 pairs * 200 = 600 games total (> 500 required)
+const argv = process.argv.slice(2);
+const isAdventure = argv.includes('--adventure');
+const gamesFlagIdx = argv.indexOf('--games');
+const parsedGames = gamesFlagIdx !== -1 ? Number(argv[gamesFlagIdx + 1]) : NaN;
+const GAMES_PER_PAIR = Number.isInteger(parsedGames) && parsedGames > 0 ? parsedGames : 200; // 3 * 200 = 600 default
+const RULESET = isAdventure ? CONFIG.RULESETS.ADVENTURE : CONFIG.RULESETS.CLASSIC;
 
 function simulateMatch(seed, diffA, diffB, firstPlayer) {
   let state = GameRules.createGame({
     seed,
+    ruleset: RULESET,
     difficulty: diffA,
     firstPlayer,
   });
@@ -44,6 +50,9 @@ function simulateMatch(seed, diffA, diffB, firstPlayer) {
     winner: state.winner,
     winReason: state.winReason,
     rounds: state.round,
+    powersUsed: (state.stats[1].powersUsed || 0) + (state.stats[2].powersUsed || 0),
+    chestsOpened: (state.stats[1].chestsOpened || 0) + (state.stats[2].chestsOpened || 0),
+    perksPicked: (state.perks[1].length || 0) + (state.perks[2].length || 0),
   };
 }
 
@@ -52,12 +61,16 @@ function runPair(strongDiff, weakDiff, count) {
   let weakWins = 0;
   let draws = 0;
   let totalRounds = 0;
+  let totalPowers = 0;
+  let totalChests = 0;
+  let totalPerks = 0;
   const reasons = { capital: 0, elimination: 0, rounds_tiles: 0, rounds_units: 0, rounds_draw: 0 };
 
   const t0 = performance.now();
 
   for (let i = 0; i < count; i++) {
-    const seed = `BENCH-${strongDiff.toUpperCase()}-VS-${weakDiff.toUpperCase()}-${i + 1}`;
+    const prefix = isAdventure ? 'BENCH-ADV' : 'BENCH';
+    const seed = `${prefix}-${strongDiff.toUpperCase()}-VS-${weakDiff.toUpperCase()}-${i + 1}`;
     // Alternate first player AND sides evenly across games
     const firstPlayer = i % 2 === 0 ? CONFIG.PLAYERS.HUMAN : CONFIG.PLAYERS.AI;
     const strongIsHuman = Math.floor(i / 2) % 2 === 0;
@@ -66,6 +79,9 @@ function runPair(strongDiff, weakDiff, count) {
 
     const res = simulateMatch(seed, diff1, diff2, firstPlayer);
     totalRounds += res.rounds;
+    totalPowers += res.powersUsed;
+    totalChests += res.chestsOpened;
+    totalPerks += res.perksPicked;
     if (res.winReason in reasons) reasons[res.winReason]++;
 
     if (res.winner === 'draw') {
@@ -94,12 +110,16 @@ function runPair(strongDiff, weakDiff, count) {
     winRate,
     decisiveRate,
     avgRounds: totalRounds / count,
+    avgPowers: totalPowers / count,
+    avgChests: totalChests / count,
+    avgPerks: totalPerks / count,
     elapsedMs,
     reasons,
   };
 }
 
-console.log(`\n=== Heksagon: AI vs AI Benchmark (${GAMES_PER_PAIR * 3} partija bez sučelja) ===\n`);
+const modeLabel = isAdventure ? 'AVANTURA' : 'KLASIKA';
+console.log(`\n=== Otok Kapetana: AI vs AI Benchmark [${modeLabel}] (${GAMES_PER_PAIR * 3} partija bez sučelja) ===\n`);
 
 const pairs = [
   ['normal', 'easy'],
@@ -107,20 +127,21 @@ const pairs = [
   ['hard', 'easy'],
 ];
 
-const results = [];
 let allPassed = true;
 
 for (const [strong, weak] of pairs) {
   const r = runPair(strong, weak, GAMES_PER_PAIR);
-  results.push(r);
   const ok = r.winRate >= 65;
   if (!ok) allPassed = false;
+  const extra = isAdventure
+    ? ` | prosj. moći=${r.avgPowers.toFixed(1)}, škrinje=${r.avgChests.toFixed(1)}, perkovi=${r.avgPerks.toFixed(1)}`
+    : '';
   console.log(
     `${ok ? '✓' : '✗'} ${r.strongDiff.toUpperCase()} vs ${r.weakDiff.toUpperCase()} (${r.count} partija): ` +
     `${r.strongWins}W / ${r.weakWins}L / ${r.draws}D — ` +
     `${r.winRate.toFixed(1)}% pobjeda (odlučene: ${r.decisiveRate.toFixed(1)}%) | ` +
     `prosj. ${r.avgRounds.toFixed(1)} krugova | ${(r.elapsedMs / 1000).toFixed(2)}s | ` +
-    `ishodi: kap=${r.reasons.capital}, elim=${r.reasons.elimination}, 40k=${r.reasons.rounds_tiles + r.reasons.rounds_units + r.reasons.rounds_draw}`
+    `ishodi: kap=${r.reasons.capital}, elim=${r.reasons.elimination}, 40k=${r.reasons.rounds_tiles + r.reasons.rounds_units + r.reasons.rounds_draw}${extra}`
   );
 }
 

@@ -2,6 +2,7 @@
   "name": "otok-kapetana",
   "version": "1.0.0",
   "private": true,
+  "license": "MIT",
   "description": "Otok Kapetana (Heksagon): potezna igra osvajanja otoka za preglednik bez vanjskih ovisnosti. Cijela igra živi u index.html.",
   "engines": {
     "node": ">=22"
@@ -9,6 +10,7 @@
   "scripts": {
     "test": "node tests/rules.test.mjs",
     "benchmark": "node tests/ai-benchmark.mjs",
+    "benchmark:adventure": "node tests/ai-benchmark.mjs --adventure",
     "verify": "node tests/rules.test.mjs && node tests/ai-benchmark.mjs"
   }
 }

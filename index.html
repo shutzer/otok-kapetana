@@ -1853,6 +1853,92 @@
     .perk-grid { grid-template-columns: 1fr; }
     .perk-card { flex-direction: row; text-align: left; padding: 10px 12px; gap: 10px; }
   }
+
+  /* Responsive Mobile Landscape (844x390 and short horizontal viewports) */
+  @media (max-height: 500px) and (orientation: landscape) {
+    #hud-top {
+      padding: 8px 12px 0;
+      align-items: center;
+    }
+
+    .faction-pill {
+      padding: 3px 9px 3px 6px;
+      gap: 6px;
+      border-radius: 12px;
+      border-width: 2.5px;
+      transform: none;
+    }
+
+    .faction-pill.ai {
+      padding: 3px 6px 3px 9px;
+      transform: none;
+    }
+
+    .mascot-avatar {
+      width: 34px;
+      height: 34px;
+      margin: -3px 0 -2px;
+      border-radius: 10px;
+      border-width: 2px;
+    }
+
+    .mascot-avatar svg { width: 40px; height: 42px; }
+    .faction-name { font-size: 11px; }
+    .faction-numbers { font-size: 11px; }
+    .round-badge { padding: 3px 10px; border-radius: 12px; transform: none; }
+    .round-label { font-size: 8px; }
+    .round-val { font-size: 12px; }
+
+    .utility-stack {
+      position: static;
+      margin-top: 0;
+    }
+
+    .wood-icon-btn { width: 34px; height: 34px; border-radius: 10px; font-size: 14px; }
+    .quip-bubble { display: none; }
+    #turn-banner { top: 48px; font-size: 12px; padding: 4px 14px; }
+    #event-banner { top: 82px; font-size: 11.5px; padding: 5px 12px; }
+
+    #hud-bottom {
+      flex-direction: row;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 8px;
+      padding: 0 10px 7px;
+    }
+
+    .bottom-left-cluster { width: auto; max-width: 270px; }
+    #phase-panel { padding: 5px 9px; border-radius: 12px; border-width: 2.5px; transform: none; }
+    .phase-tag { font-size: 10px; padding: 2px 7px; }
+    #phase-hint { font-size: 11px; }
+
+    .bottom-center-cluster { width: auto; }
+    #powers-dock { width: auto; padding: 4px 8px; gap: 5px; border-radius: 15px; border-width: 2.5px; }
+    .energy-meter { padding: 3px 7px; font-size: 11.5px; }
+    .energy-crystals, .power-btn .power-label { display: none; }
+    .power-btn { padding: 4px 8px; font-size: 11px; border-radius: 10px; }
+    #action-confirm { width: auto; padding: 5px 9px; border-radius: 14px; }
+
+    .bottom-actions { width: auto; }
+    .bottom-actions .btn { flex: 0 0 auto; padding: 7px 14px; font-size: 12.5px; border-radius: 12px; transform: none; }
+
+    /* Compact Title Screen on Landscape Mobile */
+    .title-stage { max-width: 460px; padding: 2px; }
+    .title-hero-banner { margin-bottom: -10px; }
+    .hero-portrait-lg { width: 60px; height: 60px; border-radius: 15px; border-width: 3px; }
+    .hero-portrait-lg svg { width: 70px; height: 74px; }
+    .title-plaque { padding: 6px 14px 8px; border-radius: 16px; border-width: 3px; }
+    .game-logo { font-size: 20px; }
+    .game-logo-ribbon { font-size: 9px; margin-top: 3px; }
+    .play-scroll { padding: 16px 14px 10px; gap: 7px; border-radius: 18px; border-width: 3px; }
+    .quick-toggles-row { grid-template-columns: 1fr 1fr; gap: 6px; }
+    .diff-card { padding: 5px 4px; border-radius: 12px; }
+    .diff-icon { font-size: 16px; }
+    .diff-name { font-size: 12px; }
+    .diff-desc { display: none; }
+    .btn-play-giant { font-size: 17px; padding: 10px 14px; border-radius: 15px; }
+    .link-chip { padding: 4px 10px; font-size: 11px; }
+  }
 </style>
 </head>
 <body>
@@ -2015,6 +2101,10 @@
           <button id="btn-menu" class="pop-item" type="button">
             <span>⚓ Nova avantura</span>
             <span>▸</span>
+          </button>
+          <button id="btn-reset-medals" class="pop-item" type="button" style="display:none;" title="Obriši spremljene pobjede i medalje">
+            <span>🗑️ Reset medalja</span>
+            <span id="hud-reset-badge" class="pop-badge">Obriši</span>
           </button>
         </div>
       </div>
@@ -5260,10 +5350,11 @@ const Renderer = (() => {
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
 
       // Reserve clean breathing room for floating top Hero Plates & bottom Wooden Toy Controls
-      const isNarrow = width < 820;
-      const topReserve = isNarrow ? 70 : 72;
-      const bottomReserve = isNarrow ? 158 : 78;
-      const padX = isNarrow ? 10 : Math.max(24, width * 0.045);
+      const isLandscapeMobile = height < 500 && width > height;
+      const isNarrow = width < 820 && !isLandscapeMobile;
+      const topReserve = isLandscapeMobile ? 46 : isNarrow ? 70 : 72;
+      const bottomReserve = isLandscapeMobile ? 52 : isNarrow ? 158 : 78;
+      const padX = isLandscapeMobile ? 14 : isNarrow ? 10 : Math.max(24, width * 0.045);
       const availW = Math.max(200, width - padX * 2);
       const availH = Math.max(200, height - topReserve - bottomReserve);
 
@@ -6734,6 +6825,50 @@ const Renderer = (() => {
         ctx.restore();
       }
 
+      // 16b. Playful Onboarding Coach Bubble (Round 1 first-move guidance)
+      if (uiState.onboardingHint && !combatPopup) {
+        const oh = uiState.onboardingHint;
+        const oc = centers[oh.tileId];
+        if (oc) {
+          const bob = Math.sin(now * 0.0065) * 4.5;
+          ctx.save();
+          ctx.font = '900 12.5px "Arial Rounded MT Bold", "Trebuchet MS", sans-serif';
+          const tw = ctx.measureText(oh.text).width;
+          const bw = tw + 22;
+          const bh = 28;
+          const bx = Math.max(bw / 2 + 12, Math.min(width - bw / 2 - 12, oc.x));
+          const by = Math.max(58, oc.y - hexSize * 1.42 + bob);
+
+          // 3D comic shadow
+          ctx.fillStyle = '#1b120c';
+          roundRectPath(bx - bw / 2, by - bh / 2 + 3.5, bw, bh, 14);
+          ctx.fill();
+
+          // Bright sunny coach pill
+          ctx.fillStyle = '#ffe970';
+          ctx.strokeStyle = '#1b120c';
+          ctx.lineWidth = 2.6;
+          roundRectPath(bx - bw / 2, by - bh / 2, bw, bh, 14);
+          ctx.fill();
+          ctx.stroke();
+
+          // Pointer triangle toward the tile
+          ctx.beginPath();
+          ctx.moveTo(bx - 6, by + bh / 2 - 1);
+          ctx.lineTo(bx + 6, by + bh / 2 - 1);
+          ctx.lineTo(bx, by + bh / 2 + 8);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.fillStyle = '#1b120c';
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          ctx.fillText(oh.text, bx, by + 0.5);
+          ctx.restore();
+        }
+      }
+
       // 17. Live Comic Dice Clash Banner
       if (combatPopup) {
         drawCombatPopup(combatPopup, now);
@@ -7025,6 +7160,8 @@ const GameController = (() => {
     btnMute: document.getElementById('btn-mute'),
     btnHelp: document.getElementById('btn-help'),
     btnMenu: document.getElementById('btn-menu'),
+    btnResetMedals: document.getElementById('btn-reset-medals'),
+    hudResetBadge: document.getElementById('hud-reset-badge'),
     turnBanner: document.getElementById('turn-banner'),
     eventBanner: document.getElementById('event-banner'),
     tileInspector: document.getElementById('tile-inspector'),
@@ -7118,6 +7255,9 @@ const GameController = (() => {
   let eventBannerTimer = null;
   let toastTimer = null;
   let autoEndTimer = null;
+  let resetMedalsConfirmTimer = null;
+  let resetMedalsArmed = false;
+  const ACTIVE_SAVE_KEY = 'otok_kapetana_active_game_v1';
   const quipTimers = { 1: null, 2: null };
   const moodTimers = { 1: null, 2: null };
   let quipCounter = 0;
@@ -7154,18 +7294,65 @@ const GameController = (() => {
     activePower: null,
     powerTargets: [],
     canReinforce: false,
+    onboardingHint: null,
     overrideUnits: new Map(),
   };
+
+  function disarmResetMedals() {
+    resetMedalsArmed = false;
+    if (resetMedalsConfirmTimer) {
+      window.clearTimeout(resetMedalsConfirmTimer);
+      resetMedalsConfirmTimer = null;
+    }
+    if (dom.hudResetBadge) dom.hudResetBadge.textContent = 'Obriši';
+    if (dom.btnResetMedals) dom.btnResetMedals.classList.remove('active-toggle');
+  }
 
   function closeSettingsPopover() {
     dom.settingsPopover.classList.remove('visible');
     dom.btnSettings.classList.remove('active-open');
+    disarmResetMedals();
   }
 
   function toggleSettingsPopover() {
     const open = !dom.settingsPopover.classList.contains('visible');
     dom.settingsPopover.classList.toggle('visible', open);
     dom.btnSettings.classList.toggle('active-open', open);
+    if (!open) disarmResetMedals();
+  }
+
+  function saveActiveGame() {
+    if (!hasStartedGame || !state || state.phase === CONFIG.PHASES.GAME_OVER) return;
+    try {
+      window.localStorage.setItem(ACTIVE_SAVE_KEY, JSON.stringify({
+        v: 1,
+        state,
+        playerNames,
+      }));
+    } catch (_) {}
+  }
+
+  function clearActiveGame() {
+    try {
+      window.localStorage.removeItem(ACTIVE_SAVE_KEY);
+    } catch (_) {}
+  }
+
+  function loadActiveGame() {
+    try {
+      const raw = window.localStorage.getItem(ACTIVE_SAVE_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw);
+      if (!parsed || parsed.v !== 1 || !parsed.state) return null;
+      const st = parsed.state;
+      if (!Array.isArray(st.tiles) || st.tiles.length !== HexGrid.TOPOLOGY.count) return null;
+      if (st.phase === CONFIG.PHASES.GAME_OVER || typeof st.rng !== 'number') return null;
+      if (!st.capitals || st.capitals[1] === undefined || st.capitals[2] === undefined) return null;
+      return parsed;
+    } catch (_) {
+      clearActiveGame();
+      return null;
+    }
   }
 
   function loadProgress() {
@@ -7190,7 +7377,11 @@ const GameController = (() => {
 
   function renderStartTrophies() {
     const prog = loadProgress();
-    if (prog.wins === 0 && prog.medals.length === 0) {
+    const hasAny = prog.wins > 0 || prog.medals.length > 0;
+    if (dom.btnResetMedals) {
+      dom.btnResetMedals.style.display = hasAny ? 'flex' : 'none';
+    }
+    if (!hasAny) {
       dom.startTrophies.style.display = 'none';
       return;
     }
@@ -7639,6 +7830,31 @@ const GameController = (() => {
     }
 
     dom.btnEndTurn.disabled = !humanTurn || isAnimating || Boolean(state.pendingPerkChoice) || state.phase !== CONFIG.PHASES.ACTION;
+
+    // Onboarding coach bubble in Round 1 (before first reinforcement / first attack selection)
+    ui.onboardingHint = null;
+    if (
+      hasStartedGame &&
+      humanTurn &&
+      !isAnimating &&
+      state.round === 1 &&
+      state.turnNumber === 1 &&
+      !dom.overlayStart.classList.contains('visible') &&
+      !dom.overlayHelp.classList.contains('visible') &&
+      !dom.overlayPerk.classList.contains('visible')
+    ) {
+      const capId = state.capitals[state.currentPlayer];
+      if (state.phase === CONFIG.PHASES.REINFORCE && reinforcementUndoStack.length === 0) {
+        ui.onboardingHint = { tileId: capId, text: '👆 Klikni ovdje za pojačanje!' };
+      } else if (state.phase === CONFIG.PHASES.ACTION && actionsTakenThisTurn === 0 && ui.selectedTileId === -1 && ui.actionableIds.includes(capId)) {
+        ui.onboardingHint = { tileId: capId, text: '⚔️ Klikni bazu za napad!' };
+      }
+    }
+
+    if (hasStartedGame && !isAnimating) {
+      if (state.phase === CONFIG.PHASES.GAME_OVER) clearActiveGame();
+      else saveActiveGame();
+    }
   }
 
   function evaluateAndSaveMedals() {
@@ -8483,11 +8699,30 @@ const GameController = (() => {
       renderStartTrophies();
       const canResume = hasStartedGame && state && state.phase !== CONFIG.PHASES.GAME_OVER;
       dom.btnStartResume.style.display = canResume ? 'inline-flex' : 'none';
+      if (canResume) dom.btnStartResume.textContent = `▶ Nastavi (Krug ${state.round})`;
       setOverlayVisible(dom.overlayStart, true);
+    });
+
+    dom.btnResetMedals.addEventListener('click', () => {
+      if (!resetMedalsArmed) {
+        resetMedalsArmed = true;
+        dom.hudResetBadge.textContent = 'Sigurno?';
+        dom.btnResetMedals.classList.add('active-toggle');
+        if (resetMedalsConfirmTimer) window.clearTimeout(resetMedalsConfirmTimer);
+        resetMedalsConfirmTimer = window.setTimeout(() => disarmResetMedals(), 3200);
+        return;
+      }
+      disarmResetMedals();
+      saveProgress({ wins: 0, medals: [] });
+      renderStartTrophies();
+      closeSettingsPopover();
+      showToast('Pobjede i medalje su resetirane.');
     });
 
     dom.btnStartResume.addEventListener('click', () => {
       setOverlayVisible(dom.overlayStart, false);
+      renderer.resize();
+      refreshDerivedUi();
       scheduleAutoEndIfNoActions(480);
     });
 
@@ -8592,17 +8827,42 @@ const GameController = (() => {
     setOverlayVisible(dom.overlayPerk, false);
     updateMuteButton();
     updateSpeedButton();
+
+    const saved = loadActiveGame();
+    if (saved) {
+      state = saved.state;
+      hasStartedGame = true;
+      selectedRuleset = state.ruleset;
+      selectedMode = state.mode;
+      selectedDifficulty = state.difficulty;
+      if (saved.playerNames) {
+        playerNames = {
+          [CONFIG.PLAYERS.HUMAN]: String(saved.playerNames[1] || 'Kapetan Val'),
+          [CONFIG.PLAYERS.AI]: String(saved.playerNames[2] || 'Barun Žar'),
+        };
+        dom.inputP1Name.value = playerNames[1];
+        dom.inputP2Name.value = playerNames[2];
+      }
+      dom.inputSeed.value = state.seed;
+      dom.startDiffGrid.querySelectorAll('.diff-card').forEach((el) => {
+        el.classList.toggle('selected', el.dataset.diff === selectedDifficulty);
+      });
+      dom.btnStartResume.style.display = 'inline-flex';
+      dom.btnStartResume.textContent = `▶ Nastavi (Krug ${state.round})`;
+    } else {
+      const initialSeed = PRNG.generateReadableSeed(Date.now());
+      dom.inputSeed.value = initialSeed;
+      state = GameRules.createGame({
+        seed: initialSeed,
+        mode: selectedMode,
+        ruleset: selectedRuleset,
+        difficulty: selectedDifficulty,
+        firstPlayer: CONFIG.PLAYERS.HUMAN,
+      });
+    }
+
     syncStartModalMode();
     renderStartTrophies();
-    const initialSeed = PRNG.generateReadableSeed(Date.now());
-    dom.inputSeed.value = initialSeed;
-    state = GameRules.createGame({
-      seed: initialSeed,
-      mode: selectedMode,
-      ruleset: selectedRuleset,
-      difficulty: selectedDifficulty,
-      firstPlayer: CONFIG.PLAYERS.HUMAN,
-    });
     renderer.resize();
     refreshDerivedUi();
     bindEvents();
