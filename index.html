@@ -7346,7 +7346,7 @@ const GameController = (() => {
       if (!parsed || parsed.v !== 1 || !parsed.state) return null;
       const st = parsed.state;
       if (!Array.isArray(st.tiles) || st.tiles.length !== HexGrid.TOPOLOGY.count) return null;
-      if (st.phase === CONFIG.PHASES.GAME_OVER || typeof st.rng !== 'number') return null;
+      if (st.phase === CONFIG.PHASES.GAME_OVER || !Array.isArray(st.rng) || st.rng.length !== 4) return null;
       if (!st.capitals || st.capitals[1] === undefined || st.capitals[2] === undefined) return null;
       return parsed;
     } catch (_) {
